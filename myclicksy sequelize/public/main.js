@@ -1,13 +1,12 @@
 // public/main.js
+
+// Funzione per ottenere i parametri della query string
 function getQueryParam(param) {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get(param);
 }
 
-const ADMIN_USER = "clicksy2025";
-const ADMIN_PASS = "clicksy2025";
-
-// Riferimenti DOM Principali
+// Riferimenti agli elementi DOM
 const emailOverlay = document.getElementById("emailOverlay");
 const emailInput = document.getElementById("emailInput");
 const emailSaveButton = document.getElementById("emailSaveButton");
@@ -65,7 +64,7 @@ const newSectionContent = document.getElementById("newSectionContent");
 const addSectionButton = document.getElementById("addSectionButton");
 const saveAdminConfig = document.getElementById("saveAdminConfig");
 
-let bgChoiceRadio = null; // gestito a runtime
+// Variabili globali
 let userData = null;
 let userTimerInterval = null;
 
@@ -76,6 +75,7 @@ let adminConfig = null;
 if (getQueryParam("admin") === "1") {
   adminOverlay.style.display = "flex";
 }
+
 adminLoginButton?.addEventListener("click", () => {
   if (adminUsername.value === ADMIN_USER && adminPassword.value === ADMIN_PASS) {
     adminLoginForm.style.display = "none";
@@ -85,6 +85,7 @@ adminLoginButton?.addEventListener("click", () => {
     alert("Credenziali errate!");
   }
 });
+
 adminLogoutButton?.addEventListener("click", () => {
   adminUsername.value = "";
   adminPassword.value = "";
@@ -146,7 +147,6 @@ function loadAdminData() {
       document.querySelectorAll("input[name='bgChoice']").forEach(rad => {
         if (rad.value === cfg.backgroundChoice) {
           rad.checked = true;
-          bgChoiceRadio = rad;
         }
       });
     });
@@ -249,12 +249,31 @@ showEditEmailForm?.addEventListener("click", (e) => {
   e.preventDefault();
   editEmailForm.style.display = editEmailForm.style.display === "none" ? "flex" : "none";
 });
-editEmailButton?.addEventListener("click", () => {
+
+editEmailButton?.addEventListener("click", async () => {
   const newEm = editEmailInput.value.trim();
-  if (!newEm) return;
-  saveUserData({ email: newEm }).then(() => {
-    alert("Email aggiornata con successo!");
-  });
+  if (!newEm) {
+    alert("Per favore, inserisci un'email valida.");
+    return;
+  }
+  try {
+    const response = await fetch("/api/user/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: newEm })
+    });
+    const result = await response.json();
+    if (response.ok) {
+      alert("Email aggiornata con successo!");
+      editEmailForm.style.display = "none";
+      userData.email = newEm; // Aggiorna localmente
+    } else {
+      alert(result.error || "Errore nell'aggiornamento dell'email.");
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Errore durante la richiesta.");
+  }
 });
 
 // Carica contatti, social
@@ -268,6 +287,7 @@ function loadContacts() {
     });
   });
 }
+
 function loadSocial() {
   fetch("/api/social").then(r => r.json()).then(d => {
     instagramSocial.href = d.instagram || "#";
@@ -276,18 +296,31 @@ function loadSocial() {
 }
 
 // Ottengo userData e applico logica
-function getUserData() {
-  return fetch("/api/user").then(r => {
-    if (!r.ok) throw new Error("User not found");
-    return r.json();
-  });
+async function getUserData() {
+  try {
+    const response = await fetch("/api/user");
+    if (!response.ok) throw new Error("User not found");
+    const user = await response.json();
+    return user;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 }
-function saveUserData(body) {
-  return fetch("/api/user", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  }).then(r => r.json());
+
+async function saveUserData(body) {
+  try {
+    const response = await fetch("/api/user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const updatedUser = await response.json();
+    return updatedUser;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 }
 
 /*
@@ -295,6 +328,7 @@ function saveUserData(body) {
   REFERRAL LOGIC
   ================================
 */
+
 function checkReferralParam() {
   const ref = getQueryParam("ref");
   if (ref) {
@@ -307,7 +341,7 @@ function checkReferralParam() {
 
 function initReferralLink(userD) {
   if (!userD.referralCode) {
-    // Genera un referralCode univoco se non presente
+    // In una implementazione reale, il referralCode dovrebbe essere generato dal server
     userD.referralCode = "REF-" + Math.random().toString(36).substr(2, 9);
     saveUserData({ referralCode: userD.referralCode });
   }
@@ -316,12 +350,14 @@ function initReferralLink(userD) {
   referralLink.href = personalLink;
   referralLink.textContent = personalLink;
 }
+
 copyButton?.addEventListener("click", () => {
   navigator.clipboard.writeText(referralLink.textContent)
     .then(() => {
       copiedIcon.style.display = "block";
       setTimeout(() => copiedIcon.style.display = "none", 1500);
-    });
+    })
+    .catch(err => console.error("Errore nel copia link:", err));
 });
 
 // Instagram Share
@@ -339,6 +375,7 @@ instagramShare?.addEventListener("click", () => {
   PULSANTE "RITIRA 100€"
   ================================
 */
+
 claimButton?.addEventListener("click", async () => {
   if (!userData) return;
   if (claimButton.disabled) return;
@@ -347,54 +384,55 @@ claimButton?.addEventListener("click", async () => {
   claimButton.innerHTML = `<span class="spinner" style="margin-right:8px;"></span>Caricamento...`;
   claimButton.disabled = true;
 
-  // Simula un ritardo per lo spinner
-  setTimeout(async () => {
-    // Aggiorna il pulsante
-    claimButton.style.backgroundColor = "#e74c3c";
-    claimButton.textContent = "Peccato, non hai vinto";
+  try {
+    // Simula un ritardo per l'animazione dello spinner
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Determina il timer
-    let newTimer = 24 * 60 * 60 * 1000; // 24 ore
-    if (!userData.usedRefBenefit && userData.arrivedFrom && !userData.claimed) {
-      // Prima volta con referral: 10 ore
-      newTimer = 10 * 60 * 60 * 1000;
-      
-      // Aggiorna il referrer
-      try {
-        const referrer = await db.User.findByPk(userData.arrivedFrom);
-        if (referrer) {
-          referrer.successfulReferrals += 1;
-          // Aggiungi 4 ore al timer del referrer
-          if (referrer.timerEnd && referrer.timerEnd > Date.now()) {
-            referrer.timerEnd = new Date(referrer.timerEnd.getTime() - (4 * 60 * 60 * 1000));
-          }
-          await referrer.save();
-        }
-      } catch (error) {
-        console.error("Errore nell'aggiornamento del referrer:", error);
-      }
-
-      // Marca che l'utente ha usato il beneficio del referral
-      userData.usedRefBenefit = true;
-    }
-
-    // Aggiorna lo stato dell'utente
-    await saveUserData({
-      claimed: true,
-      usedRefBenefit: userData.usedRefBenefit,
-      timerEnd: Date.now() + newTimer
-    }).then(updated => {
-      userData = updated;
-      showTimer(updated.timerEnd);
+    // Aggiorna lo stato dell'utente sul server
+    const response = await fetch("/api/user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        claimed: true,
+        timerEnd: Date.now() + 24 * 60 * 60 * 1000 // 24 ore in futuro
+      })
     });
 
-    // Aggiorna il pulsante
-    claimButton.style.backgroundColor = "#7f8c8d";
-    claimButton.textContent = "Peccato, non hai vinto";
-    claimButton.disabled = true;
-  }, 1500);
+    const result = await response.json();
+
+    if (response.ok) {
+      alert("Hai reclamato 100€! Il timer è attivo.");
+      userData = result;
+      handleTimer(result.timerEnd);
+    } else {
+      alert(result.error || "Errore durante il reclamo.");
+      claimButton.disabled = false;
+      claimButton.innerHTML = `Ritira 100<strong>€</strong>`;
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Errore durante il reclamo.");
+    claimButton.disabled = false;
+    claimButton.innerHTML = `Ritira 100<strong>€</strong>`;
+  }
 });
 
+// Gestione timer
+function handleTimer(endTime) {
+  if (endTime > Date.now()) {
+    claimButton.textContent = "Peccato, non hai vinto";
+    claimButton.disabled = true;
+    showTimer(endTime);
+  } else {
+    claimButton.disabled = false;
+    claimButton.textContent = "Ritira 100€";
+    timerDisplay.style.display = "none";
+  }
+}
+
+// Timer display
 function showTimer(endTime) {
   timerDisplay.style.display = "block";
   updateTimer(endTime);
@@ -408,8 +446,7 @@ function updateTimer(endTime) {
     timerDisplay.textContent = "";
     claimButton.disabled = false;
     claimButton.style.backgroundColor = adminConfig?.ritiraButtonColor || "#f39c12";
-    claimButton.textContent = adminConfig?.ritiraButtonText || "Ritira 100€";
-    saveUserData({ claimed: false, timerEnd: null });
+    claimButton.innerHTML = `${adminConfig?.ritiraButtonText || 'Ritira 100€'}`;
     return;
   }
   const h = Math.floor(diff / 3600000);
@@ -432,6 +469,7 @@ function getIntervalByIndex(i) {
   const rand = val / 233280;
   return 5 + Math.floor(rand * 16);
 }
+
 function initializeVetrina() {
   const now = Date.now();
   let currentIndex = 0;
@@ -446,6 +484,7 @@ function initializeVetrina() {
   }
   renderVetrina();
 }
+
 function createItem(timestamp, index) {
   const messages = [
     "È stata appena inviata una nuova vincita!",
@@ -457,6 +496,7 @@ function createItem(timestamp, index) {
   const msgIndex = index % messages.length;
   globalItems.push({ time: timestamp, text: messages[msgIndex] });
 }
+
 function checkNewItem() {
   const now = Date.now();
   const lastIndex = partialSums.length - 1;
@@ -475,6 +515,7 @@ function checkNewItem() {
   }
   renderVetrina();
 }
+
 function renderVetrina() {
   const oneHourAgo = Date.now() - 3600 * 1000;
   globalItems = globalItems.filter(item => item.time >= oneHourAgo);
@@ -488,6 +529,7 @@ function renderVetrina() {
     vetrinaItems.appendChild(div);
   });
 }
+
 function updateVetrinaTimers() {
   const itemDivs = vetrinaItems.querySelectorAll(".vetrina-item");
   itemDivs.forEach(div => {
@@ -516,6 +558,7 @@ minimizeVetrina.addEventListener("click", () => {
   vetrinaScorrevole.classList.add("hide");
   restoreVetrina.classList.add("visible");
 });
+
 restoreVetrina.addEventListener("click", () => {
   vetrinaScorrevole.classList.remove("hide");
   vetrinaScorrevole.classList.add("show");
@@ -527,7 +570,7 @@ restoreVetrina.addEventListener("click", () => {
   INIT
   ================================
 */
-function initAll() {
+async function initAll() {
   // Carica config e la applica
   fetch("/api/adminConfig")
     .then(r => r.json())
@@ -540,37 +583,19 @@ function initAll() {
   checkReferralParam();
 
   // Carico user
-  getUserData().then(u => {
-    userData = u;
+  userData = await getUserData();
+  if (userData) {
     // Se mail = null => popup
-    if (!u.email) {
-      emailOverlay.style.display = "flex";
-    }
-    // Se timer non scaduto => disabilito
-    if (u.timerEnd && new Date(u.timerEnd) > Date.now()) {
-      claimButton.disabled = true;
-      claimButton.style.backgroundColor = "#7f8c8d";
-      claimButton.textContent = "Peccato, non hai vinto";
-      showTimer(new Date(u.timerEnd));
-    } else if (u.claimed) {
-      // Se claimed ma timer scaduto => re-enable
-      if (new Date(u.timerEnd) < Date.now()) {
-        saveUserData({ claimed: false, timerEnd: null }).then(() => {
-          claimButton.disabled = false;
-        });
-      } else {
-        // Timer non scaduto
-        claimButton.disabled = true;
-        claimButton.style.backgroundColor = "#7f8c8d";
-        claimButton.textContent = "Peccato, non hai vinto";
-        showTimer(new Date(u.timerEnd));
-      }
+    if (!userData.email) {
+      showEmailPopup();
     }
 
-    // Genero link referral univoco
-    initReferralLink(u);
-  })
-  .catch(err => console.error(err));
+    // Gestisci lo stato del pulsante "Ritira 100€"
+    handleClaimButton(userData);
+    
+    // Inizializza il link referral
+    initReferralLink(userData);
+  }
 
   loadContacts();
   loadSocial();
@@ -580,3 +605,63 @@ function initAll() {
 }
 
 initAll();
+
+// Funzione che mostra il popup email
+function showEmailPopup() {
+  emailOverlay.style.display = "flex";
+}
+
+// Funzione per nascondere il popup email
+function hideEmailPopup() {
+  emailOverlay.style.display = "none";
+}
+
+// Funzione per validare l'email (client-side)
+function validateEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(String(email).toLowerCase());
+}
+
+// Event listener per il pulsante di salvataggio dell'email
+emailSaveButton.addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  if (!email) {
+    alert("Per favore, inserisci un'email valida.");
+    return;
+  }
+  if (!validateEmail(email)) {
+    alert("Per favore, inserisci un'email valida.");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/user/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      alert(result.message);
+      hideEmailPopup();
+      userData.email = email; // Aggiorna localmente
+    } else {
+      alert(result.error || "Errore nell'aggiornamento dell'email.");
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Errore durante la richiesta.");
+  }
+});
+
+/*
+  ================================
+  REFERRAL LOGIC
+  ================================
+*/
+
+// Rotta per gestire il referral (già implementata nel server)
