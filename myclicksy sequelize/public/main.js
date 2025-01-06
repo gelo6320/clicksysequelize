@@ -388,23 +388,20 @@ claimButton?.addEventListener("click", async () => {
     // Simula un ritardo per l'animazione dello spinner
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Aggiorna lo stato dell'utente sul server
-    const response = await fetch("/api/user", {
+    // Invio richiesta al server per reclamare il premio
+    const response = await fetch("/api/user/claim", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        claimed: true,
-        timerEnd: Date.now() + 24 * 60 * 60 * 1000 // 24 ore in futuro
-      })
+      }
     });
 
     const result = await response.json();
 
     if (response.ok) {
       alert("Hai reclamato 100€! Il timer è attivo.");
-      userData = result;
+      userData.claimed = true;
+      userData.timerEnd = result.timerEnd;
       handleTimer(result.timerEnd);
     } else {
       alert(result.error || "Errore durante il reclamo.");
@@ -440,7 +437,7 @@ function showTimer(endTime) {
 }
 
 function updateTimer(endTime) {
-  const diff = endTime - Date.now();
+  const diff = new Date(endTime).getTime() - Date.now();
   if (diff <= 0) {
     clearInterval(userTimerInterval);
     timerDisplay.textContent = "";
