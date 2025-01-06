@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Partecipa a Clicksy!</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="container" id="mainContainer">
+    <!-- Social in alto a destra -->
+    <div class="social-section" id="socialSection">
+      <span>Seguici su</span>
+      <a class="social-link" id="instagramSocial" href="#" target="_blank">
+        <img 
+          src="https://cdn-icons-png.flaticon.com/512/174/174855.png" 
+          alt="Instagram"
+        />
+      </a>
+      <a class="social-link" id="tiktokSocial" href="#" target="_blank">
+        <img 
+          src="https://cdn-icons-png.flaticon.com/512/3046/3046121.png" 
+          alt="TikTok"
+        />
+      </a>
+    </div>
+
+    <!-- Titolo personalizzabile da Admin -->
+    <h1 class="gradient-text" id="clicksyTitle" style="margin-top:40px;">
+      Partecipa a Clicksy!
+    </h1>
+
+    <div class="small-warning">
+      Clicksy è completamente gratuito. Diffida da chi ti chiede pagamenti.
+    </div>
+
+    <!-- Pulsante "Ritira 100€" -->
+    <button id="claimButton" class="btn-ritira" style="margin-bottom: 12px;">
+      Ritira 100<strong>€</strong>
+    </button>
+    <div class="timer" id="timerDisplay"></div>
+
+    <!-- Sezione "Problemi o suggerimenti?" -->
+    <div class="help-section">
+      Problemi o suggerimenti? <a href="#contactsSection" id="goToContactsLink">contattaci</a>
+    </div>
+
+    <!-- SEZIONE REFERRAL -->
+    <div class="referral-section">
+      <span class="referral-title">Il tuo link personale:</span>
+      <p class="referral-description" id="linkPersonaleText">
+        Ogni click sul tuo link fa risparmiare ore di attesa!
+      </p>
+      <div class="referral-row">
+        <div class="referral-link-box">
+          <a id="referralLink" href="" target="_blank"></a>
+          <button id="copyButton" class="copy-button">
+            <img 
+              src="https://cdn-icons-png.flaticon.com/512/54/54702.png" 
+              alt="Copy Icon"
+            />
+            <span class="copied-icon" id="copiedIcon">copiato</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sezione "Condividi su Instagram" -->
+    <div class="share-instagram">
+      <h2 class="share-instagram-title">Condividi su Instagram!</h2>
+      <div class="share-instagram-content" id="instagramShare">
+        <img 
+          class="share-instagram-icon" 
+          src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" 
+          alt="Instagram Icon"
+        />
+        <span class="share-instagram-text">
+          Condividi il tuo link nella stories
+        </span>
+      </div>
+    </div>
+
+    <!-- Sezione "Come funziona?" personalizzabile -->
+    <div class="instructions come-funziona" id="comeFunzionaContainer">
+      <details>
+        <summary>Come funziona?</summary>
+        <p id="comeFunzionaText" style="margin-top:8px; font-size:0.85em; line-height:1.4;">
+          Testo standard su come funziona.
+        </p>
+      </details>
+    </div>
+
+    <!-- Sezione Contatti -->
+    <section id="contactsSection" class="contacts-section">
+      <h2>Contatti</h2>
+      <ul id="contactsList"></ul>
+    </section>
+
+    <!-- Sezione "Aggiorna Email": appare box solo al click -->
+    <div class="edit-email-section" id="editEmailSection">
+      <h2>Aggiorna la tua Email</h2>
+      <p style="font-size:0.8em; color:#555;">
+        <a href="#" id="showEditEmailForm">Modifica Email</a>
+      </p>
+      <div class="edit-email-container" id="editEmailForm" style="display:none; margin-top:8px;">
+        <input type="email" id="editEmailInput" placeholder="Nuova Email"/>
+        <button id="editEmailButton">Salva</button>
+      </div>
+    </div>
+
+    <footer style="font-size:0.6em; color:rgba(0,0,0,0.4); margin-top:30px;">
+      &copy; 2025 Clicksy. Tutti i diritti riservati.
+    </footer>
+  </div>
+
+  <!-- POPUP EMAIL all’ingresso -->
+  <div id="emailOverlay">
+    <div class="email-modal">
+      <h2>Inserisci la tua email</h2>
+      <p>Per inviarti il premio in caso di vincita (solo la prima volta):</p>
+      <div class="email-row">
+        <span class="email-label">Email</span>
+        <input type="email" id="emailInput" placeholder="esempio@email.com"/>
+      </div>
+      <button id="emailSaveButton">Salva Email</button>
+    </div>
+  </div>
+
+  <!-- Vetrina Ultime Vincite (testo più grande) -->
+  <div id="vetrinaScorrevole" class="show">
+    <h2 style="font-size:1em;">Ultime Vincite</h2>
+    <div id="minimizeVetrina"></div>
+    <div id="vetrinaItems"></div>
+  </div>
+  <div id="restoreVetrina" class="icon restore">
+    <img 
+      src="https://cdn-icons-png.flaticon.com/512/271/271220.png" 
+      alt="Show Vetrina Icon"
+    />
+  </div>
+
+  <!-- Admin Overlay (login form), appare con ?admin=1 -->
+  <div id="adminOverlay" style="display:none;">
+    <div class="admin-modal">
+      <h2>Admin Dashboard</h2>
+      <div id="adminLoginForm">
+        <label for="adminUsername">Username</label>
+        <input id="adminUsername" type="text" placeholder="username"/>
+
+        <label for="adminPassword">Password</label>
+        <input id="adminPassword" type="password" placeholder="password"/>
+
+        <button id="adminLoginButton">Login</button>
+      </div>
+
+      <div id="adminContent" style="display:none;">
+        <h3>Accessi al Sito</h3>
+        <div class="admin-section">
+          <p><strong>Numero totale di accessi:</strong> <span id="totalAccessCount"></span></p>
+        </div>
+
+        <h3>Testi Personalizzabili</h3>
+        <div class="admin-section">
+          <label for="comeFunzionaAdmin">Testo "Come Funziona":</label>
+          <textarea id="comeFunzionaAdmin" rows="2"></textarea>
+
+          <label for="linkPersonaleAdmin">Testo "Link Personale":</label>
+          <textarea id="linkPersonaleAdmin" rows="2"></textarea>
+
+          <label for="btnTextAdmin">Testo pulsante "Ritira":</label>
+          <input id="btnTextAdmin" type="text" placeholder='Es: "Ritira 100€"'/>
+
+          <label for="btnColorAdmin">Colore pulsante:</label>
+          <input id="btnColorAdmin" type="color" />
+
+          <label for="btnSizeAdmin">Dimensione testo pulsante:</label>
+          <input id="btnSizeAdmin" type="text" placeholder='1.2em, 18px, etc.' />
+
+          <label for="clicksyTitleAdmin">Titolo "Partecipa a Clicksy!":</label>
+          <input id="clicksyTitleAdmin" type="text" placeholder='Es: "Entra in Clicksy!"'/>
+
+          <h4>Sfondo del sito</h4>
+          <label><input type="radio" name="bgChoice" value="color" checked> Colore/Gradient</label>
+          <label><input type="radio" name="bgChoice" value="image"> Immagine</label>
+          <input id="bgValueAdmin" type="text" placeholder='Es: "linear-gradient(...)" o "url(...)"' />
+        </div>
+
+        <h3>Aggiungi Nuova Sezione</h3>
+        <div class="admin-section">
+          <label>Tipo di sezione:</label>
+          <select id="newSectionType">
+            <option value="text">Testo Semplice</option>
+            <option value="code">Codice (HTML/CSS/JS)</option>
+          </select>
+          <textarea id="newSectionContent" rows="4" placeholder="Inserisci testo o codice"></textarea>
+          <button id="addSectionButton">Aggiungi Sezione</button>
+        </div>
+
+        <button id="saveAdminConfig" style="margin-top:12px; background-color:#2ecc71; color:#fff;">Salva Configurazione</button>
+
+        <h3>Classifica Referral</h3>
+        <ul id="leaderboard"></ul>
+
+        <button id="adminLogoutButton" style="background-color:#e74c3c; margin-top:14px;">
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
