@@ -27,6 +27,9 @@ const User = sequelize.define('User', {
   email: {
     type: DataTypes.STRING,
     allowNull: true,
+    validate: {
+      isEmail: true,
+    },
   },
   claimed: {
     type: DataTypes.BOOLEAN,
@@ -55,9 +58,13 @@ const User = sequelize.define('User', {
 });
 
 // Sincronizza il database
-sequelize.sync().then(() => {
-  console.log('Database & tables created!');
-});
+sequelize.sync()
+  .then(() => {
+    console.log('Database & tabelle create!');
+  })
+  .catch(err => {
+    console.error('Errore nella sincronizzazione del database:', err);
+  });
 
 // Middleware per generare userId se non esiste
 app.use(async (req, res, next) => {
@@ -65,11 +72,16 @@ app.use(async (req, res, next) => {
     const newUserId = "user-" + Math.random().toString(36).substr(2, 9);
     res.cookie("userId", newUserId, { maxAge: 31536000000 }); // 1 anno
 
-    // Crea un nuovo utente nel database
-    await User.create({
-      userId: newUserId,
-      referralCode: "REF-" + Math.random().toString(36).substr(2, 9),
-    });
+    try {
+      // Crea un nuovo utente nel database
+      await User.create({
+        userId: newUserId,
+        referralCode: "REF-" + Math.random().toString(36).substr(2, 9),
+      });
+      console.log(`Nuovo utente creato: ${newUserId}`);
+    } catch (err) {
+      console.error('Errore nella creazione dell\'utente:', err);
+    }
   }
   next();
 });
@@ -99,10 +111,11 @@ app.get("/api/user", async (req, res) => {
         userId: uid,
         referralCode: "REF-" + Math.random().toString(36).substr(2, 9),
       });
+      console.log(`Nuovo utente creato tramite API: ${uid}`);
     }
     res.json(user);
   } catch (error) {
-    console.error(error);
+    console.error('Errore nel recupero dell\'utente:', error);
     res.status(500).json({ error: "Errore del server" });
   }
 });
@@ -129,16 +142,37 @@ app.post("/api/user/email", async (req, res) => {
     await user.save();
     res.json({ message: "Email aggiornata con successo", email: user.email });
   } catch (error) {
-    console.error(error);
+    console.error('Errore nell\'aggiornamento dell\'email:', error);
     res.status(500).json({ error: "Errore del server" });
   }
 });
 
-// Funzione per validare l'email
-function validateEmail(email) {
-  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return re.test(String(email).toLowerCase());
-}
+// Rotta per gestire il claim del premio
+app.post("/api/user/claim", async (req, res) => {
+  const uid = req.cookies.userId;
+  if (!uid) {
+    return res.status(400).json({ error: "Cookie utente mancante" });
+  }
+
+  try {
+    let user = await User.findByPk(uid);
+    if (!user) {
+      return res.status(400).json({ error: "Utente non trovato" });
+    }
+
+    if (user.claimed) {
+      return res.status(400).json({ error: "Hai già reclamato il premio" });
+    }
+
+    user.claimed = true;
+    user.timerEnd = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 ore in futuro
+    await user.save();
+    res.json({ message: "Hai reclamato 100€! Il timer è attivo.", timerEnd: user.timerEnd });
+  } catch (error) {
+    console.error('Errore nel reclamo del premio:', error);
+    res.status(500).json({ error: "Errore del server" });
+  }
+});
 
 /*
   ================================
@@ -173,14 +207,16 @@ app.get("/api/referral", async (req, res) => {
         referralCode: "REF-" + Math.random().toString(36).substr(2, 9),
         arrivedFrom: referrer.userId,
       });
+      console.log(`Nuovo visitatore creato tramite referral: ${visitorId}`);
     } else if (!visitor.arrivedFrom) {
       visitor.arrivedFrom = referrer.userId;
       await visitor.save();
+      console.log(`Visitor ${visitorId} registrato per referral ${ref}`);
     }
 
     res.json({ message: "Referral registrato", ref, ownerUid: referrer.userId });
   } catch (error) {
-    console.error(error);
+    console.error('Errore nella gestione del referral:', error);
     res.status(500).json({ error: "Errore del server" });
   }
 });
